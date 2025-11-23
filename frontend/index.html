@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Margaz Kontrol Sistemi - Tank İzleme</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!--
+        MARGAZ KONTROL SİSTEMİ - FRONTEND ARAYÜZÜ
+
+        Bu sayfa gaz tankı seviyesini görsel olarak gösterir.
+        WebSocket üzerinden backend'den gelen verileri gerçek zamanlı olarak günceller.
+
+        SUNUM İÇİN ÖNEMLİ:
+        - Bu arayüz herhangi bir cihazdan (PC, tablet, telefon) erişilebilir
+        - Sayfa yenilemeye gerek yok, veriler otomatik güncellenir
+        - Tank göstergesi gerçek zamanlı olarak dolar/boşalır
+        - Alarm durumunda ekran kırmızıya döner ve uyarı gösterilir
+    -->
+
+    <div class="container">
+        <!-- Başlık Bölümü -->
+        <header class="header">
+            <div class="logo">
+                <svg width="50" height="50" viewBox="0 0 50 50">
+                    <circle cx="25" cy="25" r="20" fill="#2c3e50" stroke="#3498db" stroke-width="3"/>
+                    <path d="M 25 10 L 25 40 M 10 25 L 40 25" stroke="#3498db" stroke-width="3"/>
+                    <circle cx="25" cy="25" r="5" fill="#3498db"/>
+                </svg>
+            </div>
+            <div class="header-text">
+                <h1>MARGAZ KONTROL SİSTEMİ</h1>
+                <p class="subtitle">Gaz Tankı Seviye İzleme ve Alarm Sistemi</p>
+            </div>
+        </header>
+
+        <!-- Bağlantı Durumu -->
+        <div class="connection-status" id="connectionStatus">
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Bağlantı kuruluyor...</span>
+            </div>
+        </div>
+
+        <!-- Ana İçerik Alanı -->
+        <div class="main-content">
+            <!-- Sol Panel: Tank Göstergesi -->
+            <div class="tank-section">
+                <h2>Tank #1 - LPG Deposu</h2>
+
+                <!-- Tank Görsel Göstergesi -->
+                <div class="tank-container">
+                    <!-- Tank dış çerçevesi -->
+                    <div class="tank">
+                        <!-- Tank içindeki sıvı (dinamik olarak dolacak) -->
+                        <div class="tank-liquid" id="tankLiquid">
+                            <div class="tank-wave"></div>
+                        </div>
+
+                        <!-- Tank üzerindeki seviye yüzdesi -->
+                        <div class="tank-percentage" id="tankPercentage">0%</div>
+                    </div>
+
+                    <!-- Tank altındaki ölçek çizgileri -->
+                    <div class="tank-scale">
+                        <div class="scale-mark"><span>100%</span></div>
+                        <div class="scale-mark"><span>80%</span></div>
+                        <div class="scale-mark"><span>60%</span></div>
+                        <div class="scale-mark"><span>40%</span></div>
+                        <div class="scale-mark"><span>20%</span></div>
+                        <div class="scale-mark"><span>0%</span></div>
+                    </div>
+                </div>
+
+                <!-- Eşik Göstergesi -->
+                <div class="threshold-indicator">
+                    <div class="threshold-line" id="thresholdLine">
+                        <span class="threshold-label">Alarm Eşiği: <strong id="thresholdValue">80%</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel: Bilgi ve Durum -->
+            <div class="info-section">
+                <!-- Sistem Durumu -->
+                <div class="info-card status-card" id="statusCard">
+                    <h3>Sistem Durumu</h3>
+                    <div class="status-badge" id="statusBadge">
+                        <span class="badge-icon">✓</span>
+                        <span id="statusMessage">Normal Çalışma</span>
+                    </div>
+                </div>
+
+                <!-- Anlık Veriler -->
+                <div class="info-card data-card">
+                    <h3>Anlık Veriler</h3>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <span class="data-label">Tank Seviyesi:</span>
+                            <span class="data-value" id="levelValue">--%</span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Alarm Durumu:</span>
+                            <span class="data-value" id="alarmStatus">Kapalı</span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Son Güncelleme:</span>
+                            <span class="data-value" id="lastUpdate">--:--:--</span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Eşik Değeri:</span>
+                            <span class="data-value" id="thresholdData">80%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alarm Mesajı (Sadece alarm aktifken görünür) -->
+                <div class="info-card alarm-card hidden" id="alarmCard">
+                    <h3>⚠️ ALARM AKTIF!</h3>
+                    <p id="alarmMessage">Tank seviyesi kritik eşiği aştı!</p>
+                    <div class="alarm-animation">
+                        <div class="alarm-pulse"></div>
+                    </div>
+                </div>
+
+                <!-- TAHMİN KARTI (YENİ!) -->
+                <div class="info-card prediction-card" id="predictionCard">
+                    <h3>📊 Tahmin Verileri</h3>
+                    <div class="prediction-content">
+                        <div class="prediction-item">
+                            <span class="prediction-label">Değişim Hızı:</span>
+                            <span class="prediction-value" id="usageRate">-- %/saat</span>
+                        </div>
+                        <div class="prediction-item" id="emptyPrediction" style="display: none;">
+                            <span class="prediction-label">⏱️ Tahmini Boşalma:</span>
+                            <span class="prediction-value" id="timeToEmpty">--</span>
+                        </div>
+                        <div class="prediction-item" id="fullPrediction" style="display: none;">
+                            <span class="prediction-label">⏱️ Tahmini Dolum:</span>
+                            <span class="prediction-value" id="timeToFull">--</span>
+                        </div>
+                        <div class="prediction-note">
+                            <small>* Mevcut kullanım hızına göre hesaplanmıştır</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRAFİK KARTI (YENİ!) -->
+                <div class="info-card chart-card">
+                    <h3>📈 Son 24 Saat Grafiği</h3>
+                    <div class="chart-container">
+                        <canvas id="levelChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sistem Bilgileri -->
+                <div class="info-card system-card">
+                    <h3>Sistem Bilgileri</h3>
+                    <div class="system-info">
+                        <p><strong>Simülasyon Modu:</strong> Aktif</p>
+                        <p><strong>Güncelleme Aralığı:</strong> 2 saniye</p>
+                        <p><strong>Protokol:</strong> WebSocket</p>
+                        <p><strong>Bağlantı:</strong> <span id="wsUrl">ws://localhost:3000</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alt Bilgi -->
+        <footer class="footer">
+            <p>© 2024 Margaz Kontrol Sistemi | Gaz Tankı İzleme Simülasyonu</p>
+            <p class="demo-note">
+                <strong>Demo Amaçlı Simülasyon:</strong> Bu sistem gerçek donanım olmadan,
+                yazılımsal simülasyon ile çalışmaktadır. Gerçek uygulamada sensör entegrasyonu yapılacaktır.
+            </p>
+        </footer>
+    </div>
+
+    <!-- Chart.js Kütüphanesi (Grafik için) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- JavaScript dosyası -->
+    <script src="script.js"></script>
+
+    <!--
+        SUNUM İÇİN AÇIKLAMALAR:
+
+        1. GÖRSEL TASARIM:
+           - Modern ve profesyonel görünüm
+           - Tank görsel olarak dolar/boşalır (animasyonlu)
+           - Renk kodlaması: Yeşil (normal), Kırmızı (alarm)
+
+        2. GERÇEK ZAMANLI GÜNCELLEME:
+           - WebSocket ile sürekli bağlantı
+           - Sayfa yenilemeye gerek yok
+           - 2 saniyede bir otomatik güncelleme
+
+        3. ALARM SİSTEMİ:
+           - %80 eşiği aşıldığında ekran kırmızıya döner
+           - Alarm kartı görünür olur
+           - Görsel ve metinsel uyarılar
+
+        4. RESPONSİVE TASARIM:
+           - Masaüstü, tablet ve mobil cihazlarda düzgün görünür
+           - Farklı ekran boyutlarına uyum sağlar
+
+        5. KULLANICI DOSTU:
+           - Anlaşılır göstergeler
+           - Renkli durumu belirten ikonlar
+           - Türkçe arayüz
+    -->
+</body>
+</html>

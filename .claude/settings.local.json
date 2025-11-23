@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(dir:*)",
+      "Bash(tree:*)",
+      "Bash(timeout 5 npm start:*)",
+      "Bash(timeout 8 npm start:*)",
+      "Bash(timeout 10 npm start:*)",
+      "Bash(timeout 15 npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /PID 5296 /F)",
+      "Bash(cmd //c taskkill //PID 5296 //F)",
+      "Bash(npm start)",
+      "Bash(timeout:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
