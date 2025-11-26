@@ -1,34 +1,13 @@
-# Node.js
 node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
-
-# TypeScript
-*.tsbuildinfo
-dist/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-logs/
-*.log
-
-# Environment
 .env
-.env.local
-.env.*.local
-
-# Build
+.DS_Store
+dist/
 build/
-out/
+*.log
+.vscode/
+backend/nul
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+*.db
+.gemini/
